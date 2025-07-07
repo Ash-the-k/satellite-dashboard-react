@@ -7,7 +7,8 @@ import {
   MdOutlineExplore, // Gyro/Orientation icon
   MdOutlineListAlt,   // Logs icon
   MdLightMode,        // Light mode icon
-  MdDarkMode          // Dark mode icon
+  MdDarkMode,          // Dark mode icon
+  MdOutlineLogout
 } from "react-icons/md";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -59,21 +60,55 @@ const StyledNavLink = styled(RouterNavLink)`
   border-radius: 12px;
   transition: all 0.3s ease;
   font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+      ${({ theme }) => theme.primary}55, 
+      ${({ theme }) => theme.primary}88
+    );
+    opacity: 0;
+    mix-blend-mode: multiply;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+    border-radius: 12px;
+  }
+
+  &:hover::before {
+    opacity: 1;
+  }
 
   &:hover {
-    background-color: ${({ theme }) => theme.navbarHoverBg || 'rgba(255, 255, 255, 0.1)'};
+    transform: scale(1.05);
   }
 
-  &.active {
-    background-color: ${({ theme }) => theme.primary};
+&.active {
+  background: linear-gradient(135deg, 
+    ${({ theme }) => theme.primary}, 
+    ${({ theme }) => theme.primary}cc
+  );
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+  svg {
     color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    
-    svg {
-      color: white;
-    }
+  }
+}
+
+
+  & > * {
+    position: relative;
+    z-index: 1;
   }
 `;
+
 
 const ThemeButton = styled.button`
   background: transparent;
@@ -87,11 +122,67 @@ const ThemeButton = styled.button`
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+      ${({ theme }) => theme.primary}55, 
+      ${({ theme }) => theme.primary}88
+    );
+    opacity: 0;
+    mix-blend-mode: multiply;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
+
+  &:hover::before {
+    opacity: 1;
+  }
 
   &:hover {
-    background: ${({ theme }) => theme.primary}20;
+    transform: scale(1.05);
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
   }
 `;
+
+
+
+const LogoutButton = styled(ThemeButton)`
+  border-color: ${({ theme }) => theme.danger};
+  color: ${({ theme }) => theme.danger};
+
+  svg {
+    color: ${({ theme }) => theme.danger};
+    transition: color 0.3s ease;
+  }
+
+  &::before {
+    background: linear-gradient(135deg, 
+      ${({ theme }) => theme.danger}55, 
+      ${({ theme }) => theme.danger}88
+    );
+    mix-blend-mode: multiply;
+  }
+
+  &:hover {
+    color: white;
+
+    svg {
+      color: white;
+    }
+  }
+`;
+
+
+
 
 const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
@@ -111,9 +202,9 @@ const Navbar = () => {
       </NavBrand>
       <NavLinks>
         <StyledNavLink 
-          to="/telemetry" 
+          to="/" 
           end
-          isActive={(match, location) => match || location.pathname === '/'}
+          isActive={(match, location) => match || location.pathname === '/telemetry'}
         >
           <NavLinkContent>
             <MdOutlineShowChart size={20} />
@@ -148,9 +239,12 @@ const Navbar = () => {
             </>
           )}
         </ThemeButton>
-        <ThemeButton onClick={handleLogout} style={{ marginLeft: '1rem', background: '#d32f2f', color: '#fff', borderColor: '#d32f2f' }}>
-          Logout
-        </ThemeButton>
+        
+        <LogoutButton onClick={handleLogout}>
+          <MdOutlineLogout size={18} />
+          <span>Logout</span>
+        </LogoutButton>
+
       </NavLinks>
     </NavContainer>
   );

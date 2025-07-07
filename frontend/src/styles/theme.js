@@ -1,13 +1,13 @@
 export const lightTheme = {
   bg: '#ffffff',
   text: '#121212',
-  primary: '#534bd6',
+  primary: '#6366f1',
   cardBg: '#f8fafc',
   border: '#e2e8f0',
   chartGrid: '#e2e8f0',
   navbarBg: '#1e293b',
   navbarText: '#f8fafc',
-  danger: '#dc2626',
+  danger: '#ef4444',
   success: '#16a34a',
 };
 
