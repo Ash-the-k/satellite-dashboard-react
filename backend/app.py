@@ -1,10 +1,17 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
 import sqlite3
 import time
 import csv
 from datetime import datetime
+import os
+from werkzeug.security import check_password_hash, generate_password_hash
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 app = Flask(__name__)
 CORS(app)
@@ -40,6 +47,10 @@ def init_gyro_data():
                 ])
     except FileExistsError:
         pass
+
+# Set admin credentials from environment variables (with fallback for demo)
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD_HASH = os.environ.get('ADMIN_PASSWORD_HASH', generate_password_hash('cubesat@csds'))
 
 # API Endpoints
 @app.route("/api/telemetry")
@@ -90,7 +101,9 @@ def api_gyro():
             next(reader)  # Skip header
             last_row = None
             for row in reader:
-                last_row = row
+                # Skip empty or invalid rows
+                if row and all(cell.strip() for cell in row):
+                    last_row = row
             if last_row:
                 return jsonify({
                     "roll": float(last_row[0]),
@@ -100,6 +113,15 @@ def api_gyro():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"error": "No data"}), 404
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
+        return jsonify({"success": True, "token": "demo-token"})
+    return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
 if __name__ == "__main__":
     init_db()

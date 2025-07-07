@@ -9,6 +9,8 @@ import {
   MdLightMode,        // Light mode icon
   MdDarkMode          // Dark mode icon
 } from "react-icons/md";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const NavContainer = styled.nav`
   display: flex;
@@ -93,6 +95,13 @@ const ThemeButton = styled.button`
 
 const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <NavContainer>
@@ -138,6 +147,9 @@ const Navbar = () => {
               <span>Dark</span>
             </>
           )}
+        </ThemeButton>
+        <ThemeButton onClick={handleLogout} style={{ marginLeft: '1rem', background: '#d32f2f', color: '#fff', borderColor: '#d32f2f' }}>
+          Logout
         </ThemeButton>
       </NavLinks>
     </NavContainer>
