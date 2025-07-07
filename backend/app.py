@@ -5,6 +5,7 @@ import sqlite3
 import time
 import csv
 from datetime import datetime
+import threading
 import os
 from werkzeug.security import check_password_hash, generate_password_hash
 try:
@@ -47,6 +48,17 @@ def init_gyro_data():
                 ])
     except FileExistsError:
         pass
+
+def generate_gyro_data_continuously():
+    while True:
+        with open('gyro_data.csv', 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                random.uniform(-180, 180),
+                random.uniform(-90, 90),
+                random.uniform(-180, 180)
+            ])
+        time.sleep(1)  # append every 1 second
 
 # Set admin credentials from environment variables (with fallback for demo)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
@@ -126,4 +138,6 @@ def api_login():
 if __name__ == "__main__":
     init_db()
     init_gyro_data()
+    # Start background thread for continuous data generation
+    threading.Thread(target=generate_gyro_data_continuously, daemon=True).start()
     app.run(debug=True, port=5000)

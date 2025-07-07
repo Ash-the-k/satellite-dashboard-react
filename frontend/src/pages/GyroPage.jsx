@@ -26,7 +26,7 @@ const GyroPage = () => {
   const [gyroData, setGyroData] = useState({ roll: 0, pitch: 0, yaw: 0 });
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const getGyro = () => {
       fetchGyro()
         .then(response => {
           if (response.data && !response.data.error) {
@@ -34,7 +34,10 @@ const GyroPage = () => {
           }
         })
         .catch(error => console.error('Error fetching gyro data:', error));
-    }, 2000);
+    };
+
+    getGyro(); // initial fetch
+    const interval = setInterval(getGyro, 1000);
 
     return () => clearInterval(interval);
   }, []);

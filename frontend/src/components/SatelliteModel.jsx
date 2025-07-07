@@ -31,24 +31,39 @@ const SatelliteModel = ({ roll, pitch, yaw, onUpdate }) => {
   });
 
   return (
-    <group ref={groupRef}>
-      {/* Cube body for clearer orientation */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.8, 0.8, 0.8]} />
-        <meshPhongMaterial color="#00bcd4" />
-      </mesh>
-      {/* Optionally, keep solar panels or remove for pure cube */}
-      {/*
-      <mesh position={[0, 0.35, 0]}>
-        <boxGeometry args={[1.2, 0.05, 0.5]} />
-        <meshPhongMaterial color="#1565c0" />
-      </mesh>
-      <mesh position={[0, -0.35, 0]}>
-        <boxGeometry args={[1.2, 0.05, 0.5]} />
-        <meshPhongMaterial color="#1565c0" />
-      </mesh>
-      */}
-    </group>
+<group ref={groupRef}>
+  {/* CubeSat body */}
+  <mesh position={[0, 0, 0]}>
+    <boxGeometry args={[0.5, 0.5, 0.5]} />
+    <meshStandardMaterial color="#607d8b" metalness={0.5} roughness={0.4} />
+  </mesh>
+
+  {/* Solar panels on sides */}
+  <mesh position={[0.5, 0, 0]}>
+    <boxGeometry args={[0.02, 0.5, 0.5]} />
+    <meshStandardMaterial color="#0d47a1" metalness={0.4} roughness={0.2} />
+  </mesh>
+  <mesh position={[-0.5, 0, 0]}>
+    <boxGeometry args={[0.02, 0.5, 0.5]} />
+    <meshStandardMaterial color="#0d47a1" metalness={0.4} roughness={0.2} />
+  </mesh>
+
+  {/* Tiny antenna rods */}
+  <mesh position={[0, 0, 0.3]}>
+    <cylinderGeometry args={[0.005, 0.005, 0.3, 8]} />
+    <meshStandardMaterial color="#212121" />
+  </mesh>
+  <mesh position={[0, 0, -0.3]}>
+    <cylinderGeometry args={[0.005, 0.005, 0.3, 8]} />
+    <meshStandardMaterial color="#212121" />
+  </mesh>
+
+  {/* Small camera / sensor lens */}
+  <mesh position={[0, 0.25, 0]}>
+    <sphereGeometry args={[0.025, 16, 16]} />
+    <meshStandardMaterial color="#90caf9" emissive="#2196f3" emissiveIntensity={0.5} />
+  </mesh>
+</group>
   );
 };
 
