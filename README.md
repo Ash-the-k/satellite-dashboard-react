@@ -1,4 +1,14 @@
 # Satellite Dashboard
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Flask](https://img.shields.io/badge/Flask-2.x-black)
+![React](https://img.shields.io/badge/React-19.1.0-61DAFB)
+![Three.js](https://img.shields.io/badge/Three.js-0.178.0-orange)
+![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-green)
+![Chart.js](https://img.shields.io/badge/Chart.js-4.5.0-red)
+![SQLite](https://img.shields.io/badge/SQLite-database-blue)
+
+
 
 A full-stack web application for visualizing and monitoring satellite telemetry data.
 
@@ -6,6 +16,25 @@ A full-stack web application for visualizing and monitoring satellite telemetry 
 
 - **backend/**: Flask API for telemetry and gyro data
 - **frontend/**: React dashboard for visualization
+
+---
+
+## Environment Variables
+
+Before running the backend, copy the example environment file and edit it as needed:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+- Edit .env to set your configuration (see comments in the file)
+
+
+   - `SERVER_URL`: (Optional for simulator) The endpoint where simulated data is sent.
+   - `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`: Set admin credentials for login.
+
+See `backend/.env.example` for details and instructions.
 
 ---
 
@@ -40,6 +69,21 @@ python app.py
   - `/api/logs` — Retrieve last 50 telemetry logs
   - `/api/gyro` — Get latest gyro data
   - `/api/login` — Admin login
+
+---
+
+**Example: `/data` POST request**
+
+- **Endpoint:** `/data`
+- **Method:** POST
+- **Content-Type:** `application/json`
+- **Body:**
+  ```json
+  {
+    "data": "T:25.00C, P:1013.25hPa, AX:0.01, AY:-0.02, AZ:0.98, GX:12.34, GY:-56.78, GZ:90.12, MX:0.12, MY:-0.34, MZ:0.56"
+  }
+  ```
+- The `data` string must match the format above (identical to what the Arduino or simulator sends).
 
 ---
 
@@ -104,6 +148,25 @@ npm start
 
 ---
 
+## Screenshots
+
+### Login
+Auth gate with secure hash checks
+![Login](frontend/public/images/login.png)
+
+### Telemetry Dashboard
+Live Chart.js plots & real-time location
+![Dashboard](frontend/public/images/dashboard.png)
+
+### 3D CubeSat
+Three.js model with live roll, pitch, yaw
+![Orientation](frontend/public/images/orientation.png)
+
+### Logs
+Telemetry history snapshots in a table
+![Logs](frontend/public/images/logs.png)
+
+---
 ## License
 
 MIT 
