@@ -2,12 +2,14 @@ import requests
 import random
 import time
 import os
+import sys  # Added this import
 from dotenv import load_dotenv
 
 load_dotenv()
-# Server configuration - MUST match your Arduino settings
-SERVER_URL = os.getenv("SERVER_URL", "http://localhost:5000/data")  # Default fallback
-HEADERS = {"Content-Type": "application/json"}  # Can stay as is (not sensitive)
+# Server configuration - with fallback options
+DEFAULT_SERVER = "http://localhost:5000/data"
+SERVER_URL = os.getenv("SERVER_URL", DEFAULT_SERVER)  # First try .env, then default
+HEADERS = {"Content-Type": "application/json"}
 
 def generate_sensor_data():
     """Generates data identical to your LoRa receiver's format"""
@@ -25,33 +27,46 @@ def generate_sensor_data():
         f"MZ:{random.uniform(-0.5, 0.5):.2f}"
     )
 
-def send_to_server(data):
-    """Identical HTTP POST handling as Arduino"""
+def send_to_server(data, server_url):
+    """Improved HTTP POST handling with server URL parameter"""
     try:
         response = requests.post(
-            SERVER_URL,
-            json={"data": data},  # Same JSON structure
+            server_url,
+            json={"data": data},
             headers=HEADERS,
             timeout=5
         )
-        print(f"➡️ Data sent to server: {response.status_code}")
+        print(f"➡️ Data sent to {server_url}: {response.status_code}")
         return True
     except Exception as e:
-        print(f"❌ Failed to send data: {str(e)}")
+        print(f"❌ Failed to send to {server_url}: {str(e)}")
         return False
 
 def loop():
-    """Replicates Arduino's loop() behavior"""
-    while True:
-        # Generate data instead of receiving from LoRa
-        data = generate_sensor_data()
-        print(f"Received: {data}")  # Same debug output
-        
-        # Attempt to send (no explicit WiFi check)
-        send_to_server(data)
-        
-        time.sleep(1)  # Adjust interval as needed
+    """Main loop with fallback server logic"""
+    try:
+        while True:
+            data = generate_sensor_data()
+            print(f"Generated: {data}")
+            
+            # Try primary server first
+            success = send_to_server(data, SERVER_URL)
+            
+            # If primary fails, try fallback to localhost
+            if not success and SERVER_URL != DEFAULT_SERVER:
+                print(f"⚠️ Trying fallback server: {DEFAULT_SERVER}")
+                send_to_server(data, DEFAULT_SERVER)
+            
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n🛑 Termination signal received - Shutting down simulator")
+    except Exception as e:
+        print(f"\n⚠️ Unexpected error: {str(e)}")
+    finally:
+        print("⭕ Simulation session ended")
+        sys.exit(0)
 
 if __name__ == "__main__":
-    print("✅ Starting simulator (like LoRa Receiver Ready)")
+    print(f"✅ Starting simulator (target server: {SERVER_URL}, fallback: {DEFAULT_SERVER})")
+    print("Press Ctrl+C to stop...")
     loop()

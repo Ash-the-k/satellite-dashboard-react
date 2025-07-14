@@ -30,8 +30,7 @@ cp .env.example .env
 
 - Edit .env to set your configuration (see comments in the file)
 
-
-   - `SERVER_URL`: (Optional for simulator) The endpoint where simulated data is sent.
+   - `SERVER_URL`: (Optional for simulator) The endpoint where simulated data is sent. If not set, defaults to `http://localhost:5000/data`. The simulator will first try the value from `.env`, then fallback to the default if the primary server is unreachable.
    - `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`: Set admin credentials for login.
 
 See `backend/.env.example` for details and instructions.
@@ -105,13 +104,17 @@ After starting the backend, you have two options for sending telemetry data:
       ```bash
       export SERVER_URL="http://localhost:5000/data"
       ```
-      By default, the simulator sends data to `http://localhost:5000/data`.
+      Or, set it in a `.env` file in the backend directory. The simulator will automatically use `.env` if present.
+      
+      If the primary server is unreachable, the simulator will automatically attempt to send data to the fallback server at `http://localhost:5000/data`.
    3. Run the simulator:
       ```bash
       python ard.py
       ```
 
 - The simulator will continuously generate random telemetry data in the same format as the Arduino and POST it to the backend, which stores it in the database. The frontend will then display this data as if it were coming from a real device.
+
+- On startup, the simulator prints the target server and fallback server. It also provides improved error handling and logs connection attempts and failures.
 
 ---
 
@@ -142,7 +145,7 @@ npm start
 ## Development Notes
 
 - The backend uses SQLite (`telemetry.db`) and stores all incoming telemetry data.
-- The simulator (`backend/ard.py`) mimics Arduino by sending random data to the backend.
+- The simulator (`backend/ard.py`) mimics Arduino by sending random data to the backend. It now supports `.env` configuration for the server URL, automatic fallback to localhost if the primary server is unreachable, and improved error handling/logging.
 - The frontend is built with React, Three.js, Chart.js, and Leaflet.
 - See `frontend/package.json` for all dependencies.
 

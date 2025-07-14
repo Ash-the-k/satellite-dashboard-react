@@ -198,7 +198,7 @@ const Navbar = () => {
     <NavContainer>
       <NavBrand>
         <SatelliteIcon />
-        <span>Satellite Dashboard</span>
+        <span>DS Satellite Dashboard</span>
       </NavBrand>
       <NavLinks>
         <StyledNavLink 

@@ -87,7 +87,7 @@ const TelemetryPage = () => {
       } catch (error) {
         console.error('Error fetching telemetry:', error);
       }
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
