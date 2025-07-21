@@ -15,7 +15,7 @@ def generate_sensor_data():
     """Generates data identical to your LoRa receiver's format"""
     return (
         f"T:{random.uniform(15.0, 35.0):.2f}C, "
-        f"P:{random.uniform(900.0, 1100.0):.2f}hPa, "
+        f"P:{random.uniform(500.0, 1500.0):.2f}hPa, "
         f"AX:{random.uniform(-1.0, 1.0):.2f}, "
         f"AY:{random.uniform(-1.0, 1.0):.2f}, "
         f"AZ:{random.uniform(-1.0, 1.0):.2f}, "
