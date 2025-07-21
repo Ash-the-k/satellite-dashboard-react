@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 # Server configuration - with fallback options
 DEFAULT_SERVER = "http://localhost:5000/data"
-SERVER_URL = os.getenv("SERVER_URL", DEFAULT_SERVER)  # First try .env, then default
+SERVER_URL = os.getenv("SERVER_BASE_URL", "http://localhost:5000") + "/data"
 HEADERS = {"Content-Type": "application/json"}
 
 def generate_sensor_data():

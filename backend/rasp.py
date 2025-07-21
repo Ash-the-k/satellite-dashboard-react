@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 
 # Configuration with environment variable fallback
-DEFAULT_SERVER = "http://localhost:5000/upload"  # Changed endpoint to match your original
-SERVER_URL = os.getenv("SERVER_URL", DEFAULT_SERVER)
+DEFAULT_SERVER = "http://localhost:5000/upload"
+SERVER_URL = os.getenv("SERVER_BASE_URL", "http://localhost:5000") + "/upload"
 SEND_INTERVAL = 1  # seconds between transmissions
 
 def generate_sensor_data():
