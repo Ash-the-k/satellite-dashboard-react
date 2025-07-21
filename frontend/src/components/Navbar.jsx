@@ -14,13 +14,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const NavContainer = styled.nav`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 1.5rem 2rem; /* Increased padding for more height */
   background-color: ${({ theme }) => theme.navbarBg};
   color: ${({ theme }) => theme.navbarText};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2000; /* Ensure navbar stays above other content */
+  height: 70px; /* Set a fixed height */
 `;
 
 const NavBrand = styled.div`

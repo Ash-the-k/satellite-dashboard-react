@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 DB = 'telemetry.db'
 
-# Initialize database with only needed fields
+# Update init_db() with new schema
 def init_db():
     with sqlite3.connect(DB) as conn:
         c = conn.cursor()
@@ -24,6 +24,7 @@ def init_db():
             "CREATE TABLE IF NOT EXISTS telemetry ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
             "timestamp TEXT, "
+            "source TEXT, "  # New column to identify sensor source
             "temperature REAL, "
             "humidity REAL, "
             "latitude REAL, "
@@ -34,6 +35,7 @@ def init_db():
         conn.commit()
 
 # Endpoint for LoRa data (ard.py) - extract only pressure and gyro
+# Modify /data endpoint to include source
 @app.route("/data", methods=['POST'])
 def receive_lora_data():
     try:
@@ -41,13 +43,10 @@ def receive_lora_data():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # Extract only pressure and gyro data (ignore the rest)
         try:
-            # Parse pressure
             pressure_match = re.search(r"P:([\d.]+)hPa", data)
             pressure = float(pressure_match.group(1)) if pressure_match else None
             
-            # Parse gyro data
             gx_match = re.search(r"GX:([\d.-]+)", data)
             gy_match = re.search(r"GY:([\d.-]+)", data)
             gz_match = re.search(r"GZ:([\d.-]+)", data)
@@ -64,9 +63,9 @@ def receive_lora_data():
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO telemetry (timestamp, pressure, gx, gy, gz) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (datetime.now().isoformat(), pressure, gx, gy, gz)
+                "INSERT INTO telemetry (timestamp, source, pressure, gx, gy, gz) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (datetime.now().isoformat(), "arduino", pressure, gx, gy, gz)
             )
             conn.commit()
         
@@ -75,6 +74,7 @@ def receive_lora_data():
         return jsonify({"error": str(e)}), 500
 
 # Endpoint for WiFi data (rasp.py) - extract only temp, humidity, location
+# Modify /upload endpoint to include source
 @app.route("/upload", methods=['POST'])
 def receive_upload_data():
     try:
@@ -82,27 +82,20 @@ def receive_upload_data():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # Extract only what we need (ignore any other fields)
-        temperature = data.get('temperature')
-        humidity = data.get('humidity')
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        
-        # Convert to float if they exist
         try:
-            temperature = float(temperature) if temperature is not None else None
-            humidity = float(humidity) if humidity is not None else None
-            latitude = float(latitude) if latitude is not None else None
-            longitude = float(longitude) if longitude is not None else None
-        except (ValueError, TypeError):
+            temperature = float(data['temperature']) if 'temperature' in data else None
+            humidity = float(data['humidity']) if 'humidity' in data else None
+            latitude = float(data['latitude']) if 'latitude' in data else None
+            longitude = float(data['longitude']) if 'longitude' in data else None
+        except ValueError:
             return jsonify({"error": "Invalid numeric values"}), 400
         
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO telemetry (timestamp, temperature, humidity, latitude, longitude) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (datetime.now().isoformat(), temperature, humidity, latitude, longitude)
+                "INSERT INTO telemetry (timestamp, source, temperature, humidity, latitude, longitude) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (datetime.now().isoformat(), "raspberry", temperature, humidity, latitude, longitude)
             )
             conn.commit()
         
@@ -144,6 +137,7 @@ def api_telemetry():
         "location": {"lat": 0.0, "lon": 0.0}
     })
 
+# Update /api/logs endpoint
 @app.route("/api/logs")
 def api_logs():
     with sqlite3.connect(DB) as conn:
@@ -151,12 +145,14 @@ def api_logs():
         c.execute("""
             SELECT 
                 id, 
-                timestamp, 
-                COALESCE(temperature, 0.0) as temperature,
-                COALESCE(humidity, 0.0) as humidity,
-                COALESCE(pressure, 0.0) as pressure,
-                COALESCE(latitude, 0.0) as latitude,
-                COALESCE(longitude, 0.0) as longitude
+                timestamp,
+                source,
+                temperature,
+                humidity,
+                pressure,
+                latitude,
+                longitude,
+                gx, gy, gz
             FROM telemetry 
             ORDER BY timestamp DESC 
             LIMIT 50
@@ -166,11 +162,15 @@ def api_logs():
     return jsonify([{
         "id": row[0],
         "timestamp": row[1],
-        "temperature": float(row[2]),
-        "humidity": float(row[3]),
-        "pressure": float(row[4]),
-        "latitude": float(row[5]),
-        "longitude": float(row[6])
+        "source": row[2],
+        "temperature": row[3] if row[3] is not None else "N/A",
+        "humidity": row[4] if row[4] is not None else "N/A",
+        "pressure": row[5] if row[5] is not None else "N/A",
+        "latitude": row[6] if row[6] is not None else "N/A",
+        "longitude": row[7] if row[7] is not None else "N/A",
+        "gx": row[8] if row[8] is not None else "N/A",
+        "gy": row[9] if row[9] is not None else "N/A",
+        "gz": row[10] if row[10] is not None else "N/A"
     } for row in logs])
 
 @app.route("/api/gyro")

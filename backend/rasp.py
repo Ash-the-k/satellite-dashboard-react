@@ -14,8 +14,8 @@ def generate_sensor_data():
     data = {
         "temperature": round(random.uniform(20.0, 35.0), 1),
         "humidity": round(random.uniform(30.0, 80.0), 1),
-        "latitude": round(random.uniform(12.900000, 13.100000), 6),
-        "longitude": round(random.uniform(77.500000, 77.700000), 6),
+        "latitude": round(random.uniform(0.000000, 50.000000), 6),
+        "longitude": round(random.uniform(5.000000, 80.000000), 6),
         "timestamp": datetime.now().isoformat()
     }
     

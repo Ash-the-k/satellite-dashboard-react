@@ -19,6 +19,7 @@ const AppContainer = styled.div`
 const MainContent = styled.main`
   flex: 1;
   padding: 2rem;
+  margin-top: 70px; // This accounts for the fixed navbar height
 `;
 
 function PrivateRoute({ children }) {
