@@ -83,10 +83,11 @@ def receive_upload_data():
             return jsonify({"error": "No data provided"}), 400
         
         try:
-            temperature = float(data['temperature']) if 'temperature' in data else None
-            humidity = float(data['humidity']) if 'humidity' in data else None
-            latitude = float(data['latitude']) if 'latitude' in data else None
-            longitude = float(data['longitude']) if 'longitude' in data else None
+            # Safely handle null/missing values
+            temperature = float(data.get('temperature', 0.0))
+            humidity = float(data.get('humidity', 0.0))
+            latitude = float(data['latitude']) if 'latitude' in data and data['latitude'] is not None else None
+            longitude = float(data['longitude']) if 'longitude' in data and data['longitude'] is not None else None
         except ValueError:
             return jsonify({"error": "Invalid numeric values"}), 400
         
