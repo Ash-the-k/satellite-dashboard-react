@@ -10,7 +10,7 @@ export const lightTheme = {
   danger: '#ef4444',
   success: '#16a34a',
   arduinoColor: '#2563eb',  // Deep blue
-  raspberryColor: '#059669', // Forest green
+  GPSColor: '#059669', // Forest green
   isDark: false
 };
 
@@ -26,7 +26,7 @@ export const darkTheme = {
   danger: '#ef4444',
   success: '#22c55e',
   arduinoColor: '#93c5fd',  // Lighter blue for dark mode
-  raspberryColor: '#6ee7b7', // Lighter green
+  GPSColor: '#6ee7b7', // Lighter green
   naColor: '#fca5a5',       // Softer red
   isDark: true
 };

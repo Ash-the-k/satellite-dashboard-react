@@ -96,7 +96,7 @@ def receive_upload_data():
             c.execute(
                 "INSERT INTO telemetry (timestamp, source, temperature, humidity, latitude, longitude) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (datetime.now().isoformat(), "raspberry", temperature, humidity, latitude, longitude)
+                (datetime.now().isoformat(), "GPS", temperature, humidity, latitude, longitude)
             )
             conn.commit()
         
@@ -156,7 +156,7 @@ def api_logs():
                 gx, gy, gz
             FROM telemetry 
             ORDER BY timestamp DESC 
-            LIMIT 50
+            LIMIT 500
         """)
         logs = c.fetchall()
     

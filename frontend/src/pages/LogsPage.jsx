@@ -101,7 +101,7 @@ const SourceBadge = styled.span`
       ? theme.bg  // Use dark background color for text in dark mode
       : 'white'}; // Keep white text in light mode
   background-color: ${({ source, theme }) => 
-    source === 'arduino' ? theme.arduinoColor : theme.raspberryColor};
+    source === 'arduino' ? theme.arduinoColor : theme.GPSColor};
 `;
 
 
@@ -132,7 +132,7 @@ const LogsPage = () => {
   const renderSource = (source) => {
     return (
       <SourceBadge source={source}>
-        {source === 'arduino' ? 'Arduino' : 'Raspberry'}
+        {source === 'arduino' ? 'Arduino' : 'GPS'}
       </SourceBadge>
     );
   };
@@ -168,9 +168,9 @@ const LogsPage = () => {
             width: '12px',
             height: '12px',
             borderRadius: '50%',
-            backgroundColor: theme.raspberryColor
+            backgroundColor: theme.GPSColor
           }} />
-          <span>Raspberry (Temp/Humidity/Location)</span>
+          <span>GPS (Temp/Humidity/Location)</span>
         </div>
       </div>
 
