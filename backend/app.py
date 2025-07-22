@@ -9,8 +9,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 try:
     from dotenv import load_dotenv
     load_dotenv()
+    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+    ADMIN_PASSWORD_HASH = os.getenv('ADMIN_PASSWORD_HASH')
 except ImportError:
     pass
+
 
 app = Flask(__name__)
 CORS(app)
@@ -156,7 +159,7 @@ def api_logs():
                 gx, gy, gz
             FROM telemetry 
             ORDER BY timestamp DESC 
-            LIMIT 500
+            LIMIT 300
         """)
         logs = c.fetchall()
     
@@ -200,7 +203,15 @@ def api_gyro():
         "yaw": 0.0
     })
 
-# ... [rest of the auth code remains the same] ...
+# Login endpoint remains unchanged
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
+        return jsonify({"success": True, "token": "demo-token"})
+    return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
 if __name__ == "__main__":
     init_db()
