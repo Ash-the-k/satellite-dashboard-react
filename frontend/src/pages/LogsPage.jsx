@@ -110,15 +110,96 @@ const NAValue = styled.span`
   font-style: italic;
 `;
 
+const PaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const PageButton = styled.button`
+  background: ${({ theme, active }) => (active ? theme.primary : theme.cardBg)};
+  color: ${({ theme, active }) => (active ? 'white' : theme.text)};
+  border: 1px solid ${({ theme }) => theme.primary};
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PageSizeSelect = styled.select`
+  background: ${({ theme }) => theme.cardBg};
+  color: ${({ theme }) => theme.text};
+  border: 1px solid ${({ theme }) => theme.primary};
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  font-size: 1rem;
+`;
+
 const LogsPage = () => {
   const [logs, setLogs] = useState([]);
   const { theme } = useTheme();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [logsPerPage, setLogsPerPage] = useState(10);
+  const [pageInput, setPageInput] = useState('');
 
   useEffect(() => {
+    // Initial fetch
     fetchLogs()
       .then(response => setLogs(response.data))
       .catch(error => console.error('Error fetching logs:', error));
+
+    // Polling interval
+    const interval = setInterval(() => {
+      fetchLogs()
+        .then(response => setLogs(response.data))
+        .catch(error => console.error('Error fetching logs:', error));
+    }, 5000); // every 5 seconds
+
+    // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
+
+  // Pagination logic
+  const totalLogs = logs.length;
+  const totalPages = Math.ceil(totalLogs / logsPerPage);
+  const startIdx = (currentPage - 1) * logsPerPage;
+  const endIdx = startIdx + logsPerPage;
+  const currentLogs = logs.slice(startIdx, endIdx);
+
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    setPageInput('');
+  };
+
+  const handlePageSizeChange = (e) => {
+    setLogsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when page size changes
+    setPageInput('');
+  };
+
+  const handlePageInputChange = (e) => {
+    const val = e.target.value;
+    // Only allow numbers
+    if (/^\d*$/.test(val)) {
+      setPageInput(val);
+    }
+  };
+
+  const handlePageInputGo = () => {
+    const pageNum = Number(pageInput);
+    if (pageNum >= 1 && pageNum <= totalPages) {
+      setCurrentPage(pageNum);
+    }
+    setPageInput('');
+  };
 
   const formatValue = (value, isCoordinate = false) => {
     if (value === "N/A") return <NAValue>N/A</NAValue>;
@@ -172,6 +253,14 @@ const LogsPage = () => {
           }} />
           <span>GPS (Temp/Humidity/Location)</span>
         </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>Logs per page:</span>
+          <PageSizeSelect value={logsPerPage} onChange={handlePageSizeChange} theme={theme}>
+            {[10, 20, 30, 40, 50].map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </PageSizeSelect>
+        </div>
       </div>
 
       <TableContainer>
@@ -193,7 +282,7 @@ const LogsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {logs.map(log => (
+                {currentLogs.map(log => (
                   <tr key={log.id}>
                     <td>{log.id}</td>
                     <td>{new Date(log.timestamp).toLocaleString()}</td>
@@ -211,6 +300,52 @@ const LogsPage = () => {
               </tbody>
             </StyledTable>
         </ScrollableTableWrapper>
+        <PaginationControls>
+          <PageButton onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} theme={theme}>&lt; Prev</PageButton>
+          {/* Show page buttons for 1-5 and last page only */}
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => (
+            <PageButton
+              key={i + 1}
+              onClick={() => handlePageChange(i + 1)}
+              active={currentPage === i + 1}
+              theme={theme}
+            >
+              {i + 1}
+            </PageButton>
+          ))}
+          {totalPages > 6 && <span style={{ color: theme.text }}>...</span>}
+          {totalPages > 5 && (
+            <PageButton
+              key={totalPages}
+              onClick={() => handlePageChange(totalPages)}
+              active={currentPage === totalPages}
+              theme={theme}
+            >
+              {totalPages}
+            </PageButton>
+          )}
+          {/* Page input for jumping to a page if more than 5 pages */}
+          {totalPages > 5 && (
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handlePageInputGo();
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            >
+              <input
+                type="text"
+                value={pageInput}
+                onChange={handlePageInputChange}
+                style={{ width: '2.5rem', borderRadius: 4, border: `1px solid ${theme.primary}`, padding: '0.2rem 0.4rem', color: theme.text, background: theme.cardBg }}
+                placeholder="Go"
+                maxLength={String(totalPages).length}
+              />
+              <PageButton type="submit" theme={theme} style={{ padding: '0.2rem 0.5rem', fontSize: '0.95em' }}>Go</PageButton>
+            </form>
+          )}
+          <PageButton onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} theme={theme}>Next &gt;</PageButton>
+        </PaginationControls>
       </TableContainer>
     </PageContainer>
   );

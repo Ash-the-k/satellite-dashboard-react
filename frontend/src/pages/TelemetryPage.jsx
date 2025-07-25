@@ -79,20 +79,62 @@ const TelemetryPage = () => {
     const interval = setInterval(async () => {
       try {
         const response = await fetchTelemetry();
-        setCurrentTelemetry(response.data);
-        setHistoricalData(prev => [{
+        const newEntry = {
           timestamp: new Date().toISOString(),
           ...response.data
-        }, ...prev].slice(0, 100));
+        };
+        setHistoricalData(prev => {
+          if (prev.length === 0) return [newEntry];
+
+          // Helper to get 5-min bucket key
+          const get5MinKey = (date) => {
+            const d = new Date(date);
+            d.setSeconds(0, 0);
+            d.setMinutes(Math.floor(d.getMinutes() / 5) * 5);
+            return d.toISOString();
+          };
+
+          const newKey = get5MinKey(newEntry.timestamp);
+          const latestKey = get5MinKey(prev[0].timestamp);
+
+          if (newKey === latestKey) {
+            // Update the latest point (same interval)
+            return [{ ...newEntry, timestamp: prev[0].timestamp }, ...prev.slice(1)];
+          } else if (newKey > latestKey) {
+            // New interval, add to front
+            return [newEntry, ...prev].slice(0, 1000);
+          } else {
+            // Older interval, ignore
+            return prev;
+          }
+        });
+        setCurrentTelemetry(response.data);
       } catch (error) {
         console.error('Error fetching telemetry:', error);
       }
-    }, 1000);
+    }, 5000); // every 5 seconds
 
     return () => clearInterval(interval);
   }, []);
 
   if (isLoading) return <PageContainer>Loading...</PageContainer>;
+
+  // Helper: group by 5-min interval, keep last value in each
+  function groupBy5Min(data) {
+    const grouped = {};
+    data.forEach(item => {
+      const date = new Date(item.timestamp);
+      // Round down to nearest 5 minutes
+      date.setSeconds(0, 0);
+      date.setMinutes(Math.floor(date.getMinutes() / 5) * 5);
+      const key = date.toISOString();
+      grouped[key] = item; // last value for this interval
+    });
+    // Return sorted by time ascending
+    return Object.values(grouped).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }
+
+  const filteredData = groupBy5Min(historicalData);
 
   return (
     <PageContainer>
@@ -143,7 +185,7 @@ const TelemetryPage = () => {
       <ChartsContainer>
         <TelemetryChart
           title="Temperature History"
-          data={historicalData.map(item => ({
+          data={filteredData.map(item => ({
             x: new Date(item.timestamp),
             y: item.temperature
           }))}
@@ -152,7 +194,7 @@ const TelemetryPage = () => {
         />
         <TelemetryChart
           title="Pressure History"
-          data={historicalData.map(item => ({
+          data={filteredData.map(item => ({
             x: new Date(item.timestamp),
             y: item.pressure
           }))}
@@ -161,7 +203,7 @@ const TelemetryPage = () => {
         />
         <TelemetryChart
           title="Humidity History"
-          data={historicalData.map(item => ({
+          data={filteredData.map(item => ({
             x: new Date(item.timestamp),
             y: item.humidity
           }))}
