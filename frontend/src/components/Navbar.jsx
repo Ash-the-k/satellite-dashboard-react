@@ -6,6 +6,7 @@ import {
   MdOutlineShowChart, // Telemetry icon
   MdOutlineExplore, // Gyro/Orientation icon
   MdOutlineListAlt,   // Logs icon
+  MdOutlinePeople,    // Users icon
   MdLightMode,        // Light mode icon
   MdDarkMode,          // Dark mode icon
   MdOutlineLogout
@@ -193,7 +194,7 @@ const LogoutButton = styled(ThemeButton)`
 const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -231,6 +232,15 @@ const Navbar = () => {
             <span>Logs</span>
           </NavLinkContent>
         </StyledNavLink>
+        
+        {user?.role === 'superadmin' && (
+          <StyledNavLink to="/users">
+            <NavLinkContent>
+              <MdOutlinePeople size={20} />
+              <span>Users</span>
+            </NavLinkContent>
+          </StyledNavLink>
+        )}
         
         <ThemeButton onClick={toggleTheme}>
           {isDark ? (

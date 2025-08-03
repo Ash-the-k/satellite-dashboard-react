@@ -4,20 +4,15 @@ import sqlite3
 from datetime import datetime
 import re
 import os
-from werkzeug.security import check_password_hash, generate_password_hash
-
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
-    ADMIN_PASSWORD_HASH = os.getenv('ADMIN_PASSWORD_HASH')
-except ImportError:
-    pass
+from user_manager import UserManager, initialize_superadmin
 
 
 app = Flask(__name__)
 CORS(app)
 DB = 'telemetry.db'
+
+# Initialize user manager
+user_manager = initialize_superadmin()
 
 # Update init_db() with new schema
 def init_db():
@@ -203,15 +198,105 @@ def api_gyro():
         "yaw": 0.0
     })
 
-# Login endpoint remains unchanged
+# Login endpoint with new user management
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
-        return jsonify({"success": True, "token": "demo-token"})
+    
+    success, role = user_manager.authenticate_user(username, password)
+    if success:
+        return jsonify({
+            "success": True, 
+            "token": "demo-token",
+            "role": role,
+            "username": username
+        })
     return jsonify({"success": False, "error": "Invalid credentials"}), 401
+
+# Superadmin endpoints for user management
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    """Get all users (superadmin only)"""
+    # Get credentials from query parameters
+    username = request.args.get('username')
+    password = request.args.get('password')
+    
+    if not username or not password:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    success, role = user_manager.authenticate_user(username, password)
+    if not success or role != "superadmin":
+        return jsonify({"error": "Superadmin access required"}), 403
+    
+    users = user_manager.get_all_users()
+    return jsonify({"users": users})
+
+@app.route('/api/users', methods=['POST'])
+def create_user():
+    """Create a new user (superadmin only)"""
+    data = request.get_json()
+    admin_username = data.get('admin_username')
+    admin_password = data.get('admin_password')
+    new_username = data.get('username')
+    new_password = data.get('password')
+    role = data.get('role', 'user')
+    
+    if not all([admin_username, admin_password, new_username, new_password]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    success, admin_role = user_manager.authenticate_user(admin_username, admin_password)
+    if not success or admin_role != "superadmin":
+        return jsonify({"error": "Superadmin access required"}), 403
+    
+    if user_manager.create_user(new_username, new_password, role):
+        return jsonify({"success": True, "message": f"User {new_username} created successfully"})
+    else:
+        return jsonify({"error": "User already exists"}), 400
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+def delete_user(username):
+    """Delete a user (superadmin only)"""
+    data = request.get_json()
+    admin_username = data.get('admin_username')
+    admin_password = data.get('admin_password')
+    
+    if not admin_username or not admin_password:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    success, admin_role = user_manager.authenticate_user(admin_username, admin_password)
+    if not success or admin_role != "superadmin":
+        return jsonify({"error": "Superadmin access required"}), 403
+    
+    if user_manager.delete_user(username):
+        return jsonify({"success": True, "message": f"User {username} deleted successfully"})
+    else:
+        return jsonify({"error": "User not found or cannot be deleted"}), 400
+
+@app.route('/api/users/<username>/password', methods=['PUT'])
+def update_user_password(username):
+    """Update user password"""
+    data = request.get_json()
+    current_username = data.get('username')
+    current_password = data.get('password')
+    new_password = data.get('new_password')
+    
+    if not all([current_username, current_password, new_password]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    # Check if user is updating their own password or is superadmin
+    success, role = user_manager.authenticate_user(current_username, current_password)
+    if not success:
+        return jsonify({"error": "Invalid credentials"}), 401
+    
+    if current_username != username and role != "superadmin":
+        return jsonify({"error": "Insufficient permissions"}), 403
+    
+    if user_manager.update_user_password(username, new_password):
+        return jsonify({"success": True, "message": "Password updated successfully"})
+    else:
+        return jsonify({"error": "User not found"}), 400
 
 if __name__ == "__main__":
     init_db()

@@ -6,6 +6,7 @@ import TelemetryPage from './pages/TelemetryPage';
 import GyroPage from './pages/GyroPage';
 import LogsPage from './pages/LogsPage';
 import LoginPage from './pages/LoginPage';
+import UserManagementPage from './pages/UserManagementPage';
 import styled from 'styled-components';
 import { useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -23,7 +24,7 @@ const MainContent = styled.main`
 `;
 
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem('token');
+  const { token } = useAuth();
   const location = useLocation();
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -32,8 +33,20 @@ function PrivateRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { token } = useAuth();
-  return token ? (
+  const { token, user } = useAuth();
+  
+  // If no token, show login routes
+  if (!token) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+  
+  // If token exists, show dashboard routes
+  return (
     <AppContainer>
       <Navbar />
       <MainContent>
@@ -42,15 +55,13 @@ function AppRoutes() {
           <Route path="/telemetry" element={<TelemetryPage />} />
           <Route path="/gyro" element={<GyroPage />} />
           <Route path="/logs" element={<LogsPage />} />
+          {user?.role === 'superadmin' && (
+            <Route path="/users" element={<UserManagementPage />} />
+          )}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainContent>
     </AppContainer>
-  ) : (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
   );
 }
 

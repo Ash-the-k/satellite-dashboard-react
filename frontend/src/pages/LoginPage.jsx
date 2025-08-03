@@ -243,7 +243,10 @@ const LoginPage = () => {
     try {
       const res = await loginApi(username, password);
       if (res.data.success) {
-        login(res.data.token);
+        login(res.data.token, {
+          username: res.data.username,
+          role: res.data.role
+        });
         navigate('/');
       } else {
         setError(res.data.error || 'Login failed.');
