@@ -56,7 +56,7 @@ def send_data_to_server(data, server_url):
         return False
 
 def main():
-    print(f"🚀 Starting WiFi/GPS Data Simulator")
+    print(f"🚀 Starting LoRa Data Simulator")
     print(f"   Primary server: {SERVER_URL}")
     print(f"   Fallback server: {DEFAULT_SERVER}")
     print(f"   Transmission interval: {SEND_INTERVAL} seconds")
