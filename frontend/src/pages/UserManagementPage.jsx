@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { collection, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../hooks/useTheme';
 
 const Container = styled.div`
   padding: 2rem;
@@ -26,35 +25,7 @@ const Card = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
-const Form = styled.form`
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 2rem;
-`;
 
-const FormGroup = styled.div`
-  display: grid;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  color: ${props => props.theme.text};
-  font-weight: 600;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 2px solid ${props => props.theme.border};
-  border-radius: 8px;
-  background: ${props => props.theme.inputBg};
-  color: ${props => props.theme.text};
-  font-size: 1rem;
-  
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.primary};
-  }
-`;
 
 const Select = styled.select`
   padding: 0.75rem;
@@ -140,18 +111,9 @@ const Message = styled.div`
 
 const UserManagementPage = () => {
   const { user: currentUser } = useAuth();
-  const theme = useTheme();
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // Form states
-  const [newUser, setNewUser] = useState({
-    email: '',
-    password: '',
-    displayName: '',
-    role: 'user'
-  });
 
   useEffect(() => {
     fetchUsers();
@@ -185,21 +147,7 @@ const UserManagementPage = () => {
     }
   };
 
-  const createUser = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      
-      // Note: User creation is handled by the signUp function in AuthContext
-      // This is just for demonstration - in a real app, you'd need admin SDK
-      setMessage('User creation requires Firebase Admin SDK on the backend. Use the sign-up form instead.');
-      
-    } catch (error) {
-      setMessage(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const deleteUser = async (userId) => {
     if (userId === currentUser?.uid) {
@@ -288,7 +236,7 @@ const UserManagementPage = () => {
                 {user.id !== currentUser.uid && (
                   <Button
                     onClick={() => {
-                      if (confirm(`Are you sure you want to delete user ${user.displayName || user.email}?`)) {
+                      if (window.confirm(`Are you sure you want to delete user ${user.displayName || user.email}?`)) {
                         deleteUser(user.id);
                       }
                     }}

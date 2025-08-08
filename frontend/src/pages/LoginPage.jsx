@@ -9,7 +9,9 @@ import {
   MdPerson,
   MdLightMode,
   MdDarkMode,
-  MdEmail
+  MdEmail,
+  MdVisibility,
+  MdVisibilityOff
 } from "react-icons/md";
 
 // Animation
@@ -145,8 +147,9 @@ const InputIcon = styled.div`
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: ${({ theme }) => theme.text};
-  opacity: 0.7;
+  color: ${({ theme }) => theme.primary};
+  opacity: 0.8;
+  z-index: 2;
 `;
 
 const Input = styled.input`
@@ -170,6 +173,10 @@ const Input = styled.input`
     color: ${({ theme }) => theme.text};
     opacity: 0.5;
   }
+`;
+
+const PasswordInput = styled(Input)`
+  padding-right: 3rem;
 `;
 
 // Button
@@ -232,17 +239,47 @@ const SuccessMsg = styled.div`
   border-radius: 0.5rem;
 `;
 
-// Toggle button
-const ToggleButton = styled.button`
+// Password visibility toggle
+const PasswordToggle = styled.button`
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   background: transparent;
-  color: ${({ theme }) => theme.primary};
   border: none;
-  font-size: 0.875rem;
+  color: ${({ theme }) => theme.primary};
   cursor: pointer;
-  margin-top: 1rem;
-  text-decoration: underline;
+  opacity: 0.8;
+  z-index: 2;
+  transition: opacity 0.3s ease;
   
   &:hover {
+    opacity: 1;
+  }
+`;
+
+// Toggle button
+const ToggleText = styled.p`
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text}99; // Muted text for better hierarchy
+`;
+
+// The clickable "link" part of the toggle text
+const ToggleLink = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.primary};
+  font-weight: 600;
+  cursor: pointer;
+  font-size: inherit; // Inherits font-size from ToggleText
+  margin-left: 0.5rem;
+  padding: 0;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    text-decoration: underline;
     opacity: 0.8;
   }
 `;
@@ -256,6 +293,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
@@ -363,14 +401,21 @@ const LoginPage = () => {
 
             <InputContainer>
               <InputIcon><MdLock size={20} /></InputIcon>
-              <Input 
-                type="password"
+              <PasswordInput 
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
                 disabled={loading}
               />
+              <PasswordToggle 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                theme={theme}
+              >
+                {showPassword ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />}
+              </PasswordToggle>
             </InputContainer>
 
             <Button type="submit" disabled={loading}>
@@ -381,12 +426,15 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          <ToggleButton onClick={toggleMode} theme={theme}>
+          <ToggleText theme={theme}>
             {isSignUp 
-              ? 'Already have an account? Sign in' 
-              : "Don't have an account? Sign up"
+              ? 'Already have an account?' 
+              : "Don't have an account?"
             }
-          </ToggleButton>
+            <ToggleLink onClick={toggleMode}>
+              {isSignUp ? 'Sign In' : 'Sign Up'}
+            </ToggleLink>
+          </ToggleText>
         </LoginBox>
       </Content>
     </Container>
