@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, theme as baseTheme } from './styles/theme';
 import Navbar from './components/Navbar';
@@ -23,19 +23,24 @@ const MainContent = styled.main`
   margin-top: 70px; // This accounts for the fixed navbar height
 `;
 
-function PrivateRoute({ children }) {
-  const { token } = useAuth();
-  const location = useLocation();
-  if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-  return children;
-}
-
 function AppRoutes() {
-  const { token, user } = useAuth();
-  
-  // If no token, show login routes
+  const { token, user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
   if (!token) {
     return (
       <Routes>
@@ -44,8 +49,7 @@ function AppRoutes() {
       </Routes>
     );
   }
-  
-  // If token exists, show dashboard routes
+
   return (
     <AppContainer>
       <Navbar />

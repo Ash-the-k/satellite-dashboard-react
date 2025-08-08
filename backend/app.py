@@ -10,6 +10,9 @@ from user_manager import UserManager, initialize_superadmin
 app = Flask(__name__)
 CORS(app)
 DB = 'telemetry.db'
+ 
+# Ephemeral server session identifier: changes on every backend restart
+SERVER_SESSION_ID = os.urandom(16).hex()
 
 # Initialize user manager
 user_manager = initialize_superadmin()
@@ -207,13 +210,49 @@ def api_login():
     
     success, role = user_manager.authenticate_user(username, password)
     if success:
+        # Issue an ephemeral token that becomes invalid if the backend restarts
+        token = f"{SERVER_SESSION_ID}:{username}"
         return jsonify({
             "success": True, 
-            "token": "demo-token",
+            "token": token,
             "role": role,
             "username": username
         })
     return jsonify({"success": False, "error": "Invalid credentials"}), 401
+
+# Token validation endpoint
+@app.route('/api/validate-token', methods=['GET'])
+def validate_token():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"valid": False, "error": "No token provided"}), 401
+
+    token = auth_header.split(' ')[1]
+
+    # Token format: <SERVER_SESSION_ID>:<username>
+    try:
+        session_id, username = token.split(':', 1)
+    except ValueError:
+        return jsonify({"valid": False, "error": "Malformed token"}), 401
+
+    if session_id != SERVER_SESSION_ID:
+        return jsonify({"valid": False, "error": "Expired token"}), 401
+
+    # Optionally you can verify the user still exists
+    # Here we return minimal info; frontend only needs validity
+    return jsonify({
+        "valid": True,
+        "user": {
+            "username": username
+        }
+    })
+
+# Logout endpoint
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    # In a real application, you might want to blacklist the token
+    # For demo purposes, just return success
+    return jsonify({"success": True, "message": "Logged out successfully"})
 
 # Superadmin endpoints for user management
 @app.route('/api/users', methods=['GET'])
