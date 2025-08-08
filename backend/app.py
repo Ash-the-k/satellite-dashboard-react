@@ -3,19 +3,10 @@ from flask_cors import CORS
 import sqlite3
 from datetime import datetime
 import re
-import os
-from user_manager import UserManager, initialize_superadmin
-
 
 app = Flask(__name__)
 CORS(app)
 DB = 'telemetry.db'
- 
-# Ephemeral server session identifier: changes on every backend restart
-SERVER_SESSION_ID = os.urandom(16).hex()
-
-# Initialize user manager
-user_manager = initialize_superadmin()
 
 # Update init_db() with new schema
 def init_db():
@@ -200,142 +191,6 @@ def api_gyro():
         "pitch": 0.0,
         "yaw": 0.0
     })
-
-# Login endpoint with new user management
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
-    success, role = user_manager.authenticate_user(username, password)
-    if success:
-        # Issue an ephemeral token that becomes invalid if the backend restarts
-        token = f"{SERVER_SESSION_ID}:{username}"
-        return jsonify({
-            "success": True, 
-            "token": token,
-            "role": role,
-            "username": username
-        })
-    return jsonify({"success": False, "error": "Invalid credentials"}), 401
-
-# Token validation endpoint
-@app.route('/api/validate-token', methods=['GET'])
-def validate_token():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"valid": False, "error": "No token provided"}), 401
-
-    token = auth_header.split(' ')[1]
-
-    # Token format: <SERVER_SESSION_ID>:<username>
-    try:
-        session_id, username = token.split(':', 1)
-    except ValueError:
-        return jsonify({"valid": False, "error": "Malformed token"}), 401
-
-    if session_id != SERVER_SESSION_ID:
-        return jsonify({"valid": False, "error": "Expired token"}), 401
-
-    # Optionally you can verify the user still exists
-    # Here we return minimal info; frontend only needs validity
-    return jsonify({
-        "valid": True,
-        "user": {
-            "username": username
-        }
-    })
-
-# Logout endpoint
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    # In a real application, you might want to blacklist the token
-    # For demo purposes, just return success
-    return jsonify({"success": True, "message": "Logged out successfully"})
-
-# Superadmin endpoints for user management
-@app.route('/api/users', methods=['GET'])
-def get_users():
-    """Get all users (superadmin only)"""
-    # Get credentials from query parameters
-    username = request.args.get('username')
-    password = request.args.get('password')
-    
-    if not username or not password:
-        return jsonify({"error": "Authentication required"}), 401
-    
-    success, role = user_manager.authenticate_user(username, password)
-    if not success or role != "superadmin":
-        return jsonify({"error": "Superadmin access required"}), 403
-    
-    users = user_manager.get_all_users()
-    return jsonify({"users": users})
-
-@app.route('/api/users', methods=['POST'])
-def create_user():
-    """Create a new user (superadmin only)"""
-    data = request.get_json()
-    admin_username = data.get('admin_username')
-    admin_password = data.get('admin_password')
-    new_username = data.get('username')
-    new_password = data.get('password')
-    role = data.get('role', 'user')
-    
-    if not all([admin_username, admin_password, new_username, new_password]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    success, admin_role = user_manager.authenticate_user(admin_username, admin_password)
-    if not success or admin_role != "superadmin":
-        return jsonify({"error": "Superadmin access required"}), 403
-    
-    if user_manager.create_user(new_username, new_password, role):
-        return jsonify({"success": True, "message": f"User {new_username} created successfully"})
-    else:
-        return jsonify({"error": "User already exists"}), 400
-
-@app.route('/api/users/<username>', methods=['DELETE'])
-def delete_user(username):
-    """Delete a user (superadmin only)"""
-    data = request.get_json()
-    admin_username = data.get('admin_username')
-    admin_password = data.get('admin_password')
-    
-    if not admin_username or not admin_password:
-        return jsonify({"error": "Authentication required"}), 401
-    
-    success, admin_role = user_manager.authenticate_user(admin_username, admin_password)
-    if not success or admin_role != "superadmin":
-        return jsonify({"error": "Superadmin access required"}), 403
-    
-    if user_manager.delete_user(username):
-        return jsonify({"success": True, "message": f"User {username} deleted successfully"})
-    else:
-        return jsonify({"error": "User not found or cannot be deleted"}), 400
-
-@app.route('/api/users/<username>/password', methods=['PUT'])
-def update_user_password(username):
-    """Update user password"""
-    data = request.get_json()
-    current_username = data.get('username')
-    current_password = data.get('password')
-    new_password = data.get('new_password')
-    
-    if not all([current_username, current_password, new_password]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    # Check if user is updating their own password or is superadmin
-    success, role = user_manager.authenticate_user(current_username, current_password)
-    if not success:
-        return jsonify({"error": "Invalid credentials"}), 401
-    
-    if current_username != username and role != "superadmin":
-        return jsonify({"error": "Insufficient permissions"}), 403
-    
-    if user_manager.update_user_password(username, new_password):
-        return jsonify({"success": True, "message": "Password updated successfully"})
-    else:
-        return jsonify({"error": "User not found"}), 400
 
 if __name__ == "__main__":
     init_db()

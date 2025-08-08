@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { login as loginApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -9,7 +8,8 @@ import {
   MdLock,
   MdPerson,
   MdLightMode,
-  MdDarkMode
+  MdDarkMode,
+  MdEmail
 } from "react-icons/md";
 
 // Animation
@@ -106,8 +106,6 @@ const LoginBox = styled.div`
     z-index: 1;
   }
 `;
-
-
 
 const SatelliteIcon = styled(MdOutlineSatelliteAlt)`
   font-size: 3rem;
@@ -222,40 +220,97 @@ const ErrorMsg = styled.div`
   border-radius: 0.5rem;
 `;
 
+// Success
+const SuccessMsg = styled.div`
+  color: ${({ theme }) => theme.success || '#28a745'};
+  text-align: center;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: ${({ theme }) => (theme.success || '#28a745')}15;
+  border: 1px solid ${({ theme }) => (theme.success || '#28a745')}30;
+  border-radius: 0.5rem;
+`;
+
+// Toggle button
+const ToggleButton = styled.button`
+  background: transparent;
+  color: ${({ theme }) => theme.primary};
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  text-decoration: underline;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
 // Component
 const LoginPage = () => {
-  const [username, setUsername] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!username || !password) {
-      setError('Please enter both username and password.');
+    setSuccess('');
+    
+    if (!email || !password) {
+      setError('Please enter both email and password.');
       return;
     }
+    
+    if (isSignUp && !displayName) {
+      setError('Please enter a display name.');
+      return;
+    }
+    
     setLoading(true);
+    
     try {
-      const res = await loginApi(username, password);
-      if (res.data.success) {
-        login(res.data.token, {
-          username: res.data.username,
-          role: res.data.role
-        });
-        navigate('/');
+      if (isSignUp) {
+        const result = await signUp(email, password, displayName);
+        if (result.success) {
+          setSuccess('Account created successfully! You can now sign in.');
+          setIsSignUp(false);
+          setEmail('');
+          setPassword('');
+          setDisplayName('');
+        } else {
+          setError(result.error);
+        }
       } else {
-        setError(res.data.error || 'Login failed.');
+        const result = await signIn(email, password);
+        if (result.success) {
+          navigate('/');
+        } else {
+          setError(result.error);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed.');
+      setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setError('');
+    setSuccess('');
+    setEmail('');
+    setPassword('');
+    setDisplayName('');
   };
 
   return (
@@ -276,17 +331,32 @@ const LoginPage = () => {
           <Title theme={theme}>Satellite Dashboard</Title>
 
           {error && <ErrorMsg theme={theme}>{error}</ErrorMsg>}
+          {success && <SuccessMsg theme={theme}>{success}</SuccessMsg>}
 
           <form onSubmit={handleSubmit}>
+            {isSignUp && (
+              <InputContainer>
+                <InputIcon><MdPerson size={20} /></InputIcon>
+                <Input 
+                  type="text"
+                  placeholder="Display Name"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  autoFocus
+                  disabled={loading}
+                />
+              </InputContainer>
+            )}
+
             <InputContainer>
-              <InputIcon><MdPerson size={20} /></InputIcon>
+              <InputIcon><MdEmail size={20} /></InputIcon>
               <Input 
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                autoFocus
-                autoComplete="username"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoFocus={!isSignUp}
+                autoComplete="email"
                 disabled={loading}
               />
             </InputContainer>
@@ -298,15 +368,25 @@ const LoginPage = () => {
                 placeholder="Password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 disabled={loading}
               />
             </InputContainer>
 
             <Button type="submit" disabled={loading}>
-              {loading ? 'Connecting to Satellite...' : 'Launch Dashboard'}
+              {loading 
+                ? (isSignUp ? 'Creating Account...' : 'Connecting to Satellite...') 
+                : (isSignUp ? 'Create Account' : 'Launch Dashboard')
+              }
             </Button>
           </form>
+
+          <ToggleButton onClick={toggleMode} theme={theme}>
+            {isSignUp 
+              ? 'Already have an account? Sign in' 
+              : "Don't have an account? Sign up"
+            }
+          </ToggleButton>
         </LoginBox>
       </Content>
     </Container>

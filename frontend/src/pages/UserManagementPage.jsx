@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 
@@ -137,58 +139,47 @@ const Message = styled.div`
 `;
 
 const UserManagementPage = () => {
-  const { token } = useAuth();
+  const { user: currentUser } = useAuth();
   const theme = useTheme();
-  const [users, setUsers] = useState({});
+  const [users, setUsers] = useState([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Form states
   const [newUser, setNewUser] = useState({
-    username: '',
+    email: '',
     password: '',
+    displayName: '',
     role: 'user'
-  });
-  
-  const [adminCredentials, setAdminCredentials] = useState({
-    username: '',
-    password: ''
   });
 
   useEffect(() => {
-    // Don't auto-fetch users - let user enter credentials first
-  }, [token]);
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setMessage('');
-      const params = new URLSearchParams({
-        username: adminCredentials.username,
-        password: adminCredentials.password
-      });
       
-      const response = await fetch(`http://localhost:5000/api/users?${params}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const usersCollection = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersCollection);
+      const usersList = [];
+      
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (!userData.deleted) {
+          usersList.push({
+            id: doc.id,
+            ...userData
+          });
         }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users);
-        setIsAuthenticated(true);
-        setMessage('Successfully loaded users!');
-      } else {
-        const error = await response.json();
-        setMessage(`Error: ${error.error}`);
-        setIsAuthenticated(false);
-      }
+      setUsers(usersList);
+      setMessage('Successfully loaded users!');
     } catch (error) {
       setMessage(`Error: ${error.message}`);
-      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
@@ -198,29 +189,11 @@ const UserManagementPage = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          admin_username: adminCredentials.username,
-          admin_password: adminCredentials.password,
-          username: newUser.username,
-          password: newUser.password,
-          role: newUser.role
-        })
-      });
       
-      if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
-        setNewUser({ username: '', password: '', role: 'user' });
-        fetchUsers();
-      } else {
-        const error = await response.json();
-        setMessage(`Error: ${error.error}`);
-      }
+      // Note: User creation is handled by the signUp function in AuthContext
+      // This is just for demonstration - in a real app, you'd need admin SDK
+      setMessage('User creation requires Firebase Admin SDK on the backend. Use the sign-up form instead.');
+      
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -228,30 +201,23 @@ const UserManagementPage = () => {
     }
   };
 
-  const deleteUser = async (username) => {
-    if (username === 'superadmin') {
-      setMessage('Cannot delete superadmin user');
+  const deleteUser = async (userId) => {
+    if (userId === currentUser?.uid) {
+      setMessage('Cannot delete your own account');
       return;
     }
     
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/users/${username}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(adminCredentials)
+      
+      // Mark user as deleted in Firestore
+      await updateDoc(doc(db, 'users', userId), {
+        deleted: true,
+        deletedAt: new Date().toISOString()
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
-        fetchUsers();
-      } else {
-        const error = await response.json();
-        setMessage(`Error: ${error.error}`);
-      }
+      setMessage('User deleted successfully');
+      fetchUsers();
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -259,28 +225,17 @@ const UserManagementPage = () => {
     }
   };
 
-  const updatePassword = async (username, newPassword) => {
+  const updateUserRole = async (userId, newRole) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/users/${username}/password`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: adminCredentials.username,
-          password: adminCredentials.password,
-          new_password: newPassword
-        })
+      
+      await updateDoc(doc(db, 'users', userId), {
+        role: newRole,
+        updatedAt: new Date().toISOString()
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
-      } else {
-        const error = await response.json();
-        setMessage(`Error: ${error.error}`);
-      }
+      setMessage('User role updated successfully');
+      fetchUsers();
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -288,12 +243,12 @@ const UserManagementPage = () => {
     }
   };
 
-  if (!token) {
+  if (!currentUser || currentUser.role !== 'superadmin') {
     return (
       <Container>
         <Title>Access Denied</Title>
         <Card>
-          <p>Please log in to access user management.</p>
+          <p>You need superadmin privileges to access user management.</p>
         </Card>
       </Container>
     );
@@ -310,132 +265,43 @@ const UserManagementPage = () => {
       )}
 
       <Card>
-        <h2>Admin Authentication</h2>
-        <Form onSubmit={(e) => e.preventDefault()}>
-          <FormGroup>
-            <Label>Admin Username</Label>
-            <Input
-              type="text"
-              value={adminCredentials.username}
-              onChange={(e) => setAdminCredentials({
-                ...adminCredentials,
-                username: e.target.value
-              })}
-              placeholder="Enter admin username"
-            />
-          </FormGroup>
-          <FormGroup>
-            <Label>Admin Password</Label>
-            <Input
-              type="password"
-              value={adminCredentials.password}
-              onChange={(e) => setAdminCredentials({
-                ...adminCredentials,
-                password: e.target.value
-              })}
-              placeholder="Enter admin password"
-            />
-          </FormGroup>
-          <Button onClick={fetchUsers} disabled={loading}>
-            {loading ? 'Loading...' : 'Load Users'}
-          </Button>
-        </Form>
+        <h2>Manage Users</h2>
+        <UsersList>
+          {users.map((user) => (
+            <UserCard key={user.id}>
+              <UserInfo>
+                <Username>{user.displayName || user.email}</Username>
+                <UserRole>Email: {user.email}</UserRole>
+                <UserRole>Role: {user.role}</UserRole>
+                <UserRole>Created: {new Date(user.createdAt).toLocaleDateString()}</UserRole>
+              </UserInfo>
+              <ButtonGroup>
+                <Select
+                  value={user.role}
+                  onChange={(e) => updateUserRole(user.id, e.target.value)}
+                  disabled={loading || user.id === currentUser.uid}
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Superadmin</option>
+                </Select>
+                {user.id !== currentUser.uid && (
+                  <Button
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to delete user ${user.displayName || user.email}?`)) {
+                        deleteUser(user.id);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </ButtonGroup>
+            </UserCard>
+          ))}
+        </UsersList>
       </Card>
-
-             {isAuthenticated && (
-         <>
-           <Card>
-             <h2>Create New User</h2>
-             <Form onSubmit={createUser}>
-               <FormGroup>
-                 <Label>Username</Label>
-                 <Input
-                   type="text"
-                   value={newUser.username}
-                   onChange={(e) => setNewUser({
-                     ...newUser,
-                     username: e.target.value
-                   })}
-                   placeholder="Enter username"
-                   required
-                 />
-               </FormGroup>
-               <FormGroup>
-                 <Label>Password</Label>
-                 <Input
-                   type="password"
-                   value={newUser.password}
-                   onChange={(e) => setNewUser({
-                     ...newUser,
-                     password: e.target.value
-                   })}
-                   placeholder="Enter password"
-                   required
-                 />
-               </FormGroup>
-               <FormGroup>
-                 <Label>Role</Label>
-                 <Select
-                   value={newUser.role}
-                   onChange={(e) => setNewUser({
-                     ...newUser,
-                     role: e.target.value
-                   })}
-                 >
-                   <option value="user">User</option>
-                   <option value="admin">Admin</option>
-                   <option value="superadmin">Superadmin</option>
-                 </Select>
-               </FormGroup>
-               <Button type="submit" primary disabled={loading}>
-                 {loading ? 'Creating...' : 'Create User'}
-               </Button>
-             </Form>
-           </Card>
-
-           <Card>
-             <h2>Manage Users</h2>
-             <UsersList>
-               {Object.entries(users).map(([username, userData]) => (
-                 <UserCard key={username}>
-                   <UserInfo>
-                     <Username>{username}</Username>
-                     <UserRole>Role: {userData.role}</UserRole>
-                     <UserRole>Created: {new Date(userData.created_at).toLocaleDateString()}</UserRole>
-                   </UserInfo>
-                   <ButtonGroup>
-                     {username !== 'superadmin' && (
-                       <Button
-                         onClick={() => {
-                           const newPassword = prompt(`Enter new password for ${username}:`);
-                           if (newPassword) {
-                             updatePassword(username, newPassword);
-                           }
-                         }}
-                         disabled={loading}
-                       >
-                         Change Password
-                       </Button>
-                     )}
-                     {username !== 'superadmin' && (
-                       <Button
-                         onClick={() => {
-                           if (confirm(`Are you sure you want to delete user ${username}?`)) {
-                             deleteUser(username);
-                           }
-                         }}
-                         disabled={loading}
-                       >
-                         Delete
-                       </Button>
-                     )}
-                   </ButtonGroup>
-                 </UserCard>
-               ))}
-             </UsersList>
-           </Card>
-         </>
-       )}
     </Container>
   );
 };

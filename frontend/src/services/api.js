@@ -4,24 +4,26 @@ export const api = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
 
-let unauthorizedHandler = null;
-
-export const setUnauthorizedHandler = (cb) => {
-  unauthorizedHandler = cb;
-};
+// Add Firebase auth token to requests
+api.interceptors.request.use(async (config) => {
+  // You can add Firebase auth token here if needed for backend requests
+  // const token = await auth.currentUser?.getIdToken();
+  // if (token) {
+  //   config.headers.Authorization = `Bearer ${token}`;
+  // }
+  return config;
+});
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401 && typeof unauthorizedHandler === 'function') {
-      try { unauthorizedHandler(); } catch (_) {}
-    }
+    // Handle API errors here
+    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
 
+// Data fetching functions for your satellite dashboard
 export const fetchTelemetry = () => api.get('/telemetry');
 export const fetchLogs = () => api.get('/logs');
 export const fetchGyro = () => api.get('/gyro');
-export const login = (username, password) => api.post('/login', { username, password });
-export const logout = () => api.post('/logout');

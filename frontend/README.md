@@ -1,70 +1,219 @@
-# Getting Started with Create React App
+# Satellite Dashboard Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based dashboard for satellite telemetry and monitoring with Firebase authentication.
+
+## Features
+
+- 🔐 **Firebase Authentication** - Secure user authentication with email/password
+- 🌙 **Dark/Light Theme** - Toggle between themes
+- 📊 **Real-time Telemetry** - Live satellite data visualization
+- 🎯 **Gyro Visualization** - 3D orientation tracking
+- 📝 **Logs Management** - System logs and monitoring
+- 👥 **User Management** - Role-based access control (Superadmin only)
+- 📱 **Responsive Design** - Works on desktop and mobile
+
+## Tech Stack
+
+- **React 19** - Modern React with hooks
+- **Firebase** - Authentication and Firestore database
+- **Styled Components** - CSS-in-JS styling
+- **React Router** - Client-side routing
+- **Axios** - HTTP client for API calls
+- **React Icons** - Icon library
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Firebase project (see setup guide)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd satellite-dashboard-react/frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Firebase Setup**
+   - Follow the [Firebase Setup Guide](./FIREBASE_SETUP.md)
+   - Update `src/config/firebase.js` with your Firebase configuration
+
+4. **Start the development server**
+   ```bash
+   npm start
+   ```
+
+5. **Open your browser**
+   - Navigate to `http://localhost:3000`
+   - Sign up for a new account or sign in
+
+### No Device? Use the Built-in Simulators
+If you don't have a real device, simulate data from the `backend/` directory:
+
+- Arduino-style LoRa payloads → posts to `/data`:
+  ```bash
+  cd ../backend
+  export SERVER_BASE_URL="http://localhost:5000"  # optional; defaults to localhost
+  python ard.py
+  ```
+
+- Raspberry Pi/WiFi JSON payloads (temp/humidity/GPS) → posts to `/upload`:
+  ```bash
+  cd ../backend
+  export SERVER_BASE_URL="http://localhost:5000"  # optional; defaults to localhost
+  python rasp.py
+  ```
+
+Both scripts print helpful logs and retry with a localhost fallback.
+
+## Firebase Configuration
+
+The app uses Firebase for:
+- **Authentication** - User sign in/sign up
+- **Firestore** - User data and roles storage
+
+### Environment Variables
+
+Create a `.env` file in the frontend directory:
+
+```env
+REACT_APP_FIREBASE_API_KEY=your-api-key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456789
+REACT_APP_FIREBASE_APP_ID=your-app-id
+REACT_APP_API_URL=http://localhost:5000/api
+```
+
+## Role-based Access (Current Scope)
+
+- Enforced on the client via Firestore `users/{uid}.role`
+  - The `Users` navigation and `/users` route appear only when `role === 'superadmin'`
+- Backend endpoints do not yet enforce Firebase roles
+  - Future work: server-side authorization using Firebase ID tokens
+
+## User Roles
+
+- **User** - Basic access to telemetry and logs
+- **Admin** - Reserved for future server-side enforcement
+- **Superadmin** - Full access including user management
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── config/             # Configuration files
+│   ├── firebase.js     # Firebase configuration
+│   └── config.js       # App configuration
+├── context/            # React context providers
+│   ├── AuthContext.jsx # Firebase authentication
+│   └── ThemeContext.jsx # Theme management
+├── hooks/              # Custom React hooks
+├── pages/              # Page components
+│   ├── LoginPage.jsx   # Authentication page
+│   ├── TelemetryPage.jsx # Main dashboard
+│   ├── GyroPage.jsx    # Orientation visualization
+│   ├── LogsPage.jsx    # System logs
+│   └── UserManagementPage.jsx # User management
+├── services/           # API services
+│   └── api.js         # HTTP client configuration
+└── styles/             # Global styles and themes
+```
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm start` - Start development server
+- `npm build` - Build for production
+- `npm test` - Run tests
+- `npm eject` - Eject from Create React App
 
-### `npm start`
+## Backend Integration
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The frontend expects a backend API running on `http://localhost:5000` with these endpoints:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- `GET /api/telemetry` - Satellite telemetry data
+- `GET /api/logs` - System logs
+- `GET /api/gyro` - Gyroscope data
+- `POST /data` - LoRa (Arduino-style) simulator ingestion
+- `POST /upload` - Raspberry Pi/WiFi JSON simulator ingestion
 
-### `npm test`
+## Deployment
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Firebase Hosting
 
-### `npm run build`
+1. **Install Firebase CLI**
+   ```bash
+   npm install -g firebase-tools
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Login to Firebase**
+   ```bash
+   firebase login
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. **Initialize Firebase Hosting**
+   ```bash
+   firebase init hosting
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. **Build and deploy**
+   ```bash
+   npm run build
+   firebase deploy
+   ```
 
-### `npm run eject`
+### Other Platforms
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The app can be deployed to any static hosting service:
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS S3 + CloudFront
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Troubleshooting
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Common Issues
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. **Firebase not initialized**
+   - Check your Firebase configuration in `src/config/firebase.js`
+   - Verify environment variables are set correctly
 
-## Learn More
+2. **Authentication errors**
+   - Ensure Email/Password auth is enabled in Firebase Console
+   - Check Firestore security rules
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3. **API connection errors**
+   - Verify backend server is running on `http://localhost:5000`
+   - Check CORS settings on backend
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+4. **Build errors**
+   - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+   - Check for missing dependencies
 
-### Code Splitting
+### Getting Help
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- Check the [Firebase Setup Guide](./FIREBASE_SETUP.md)
+- Review Firebase Console for authentication and database issues
+- Check browser console for JavaScript errors
 
-### Analyzing the Bundle Size
+## Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-### Making a Progressive Web App
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is licensed under the MIT License.

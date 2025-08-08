@@ -24,7 +24,7 @@ const MainContent = styled.main`
 `;
 
 function AppRoutes() {
-  const { token, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -41,7 +41,7 @@ function AppRoutes() {
     );
   }
 
-  if (!token) {
+  if (!user) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
