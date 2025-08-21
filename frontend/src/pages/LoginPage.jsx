@@ -11,8 +11,34 @@ import {
   MdDarkMode,
   MdEmail,
   MdVisibility,
-  MdVisibilityOff
+  MdVisibilityOff,
+  MdCheckBox,
+  MdCheckBoxOutlineBlank
 } from "react-icons/md";
+
+const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  cursor: pointer;
+`;
+
+const CheckboxInput = styled.input`
+  display: none;
+`;
+
+const CheckboxIcon = styled.div`
+  color: ${({ theme, checked }) => checked ? theme.primary : theme.text}80;
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+`;
+
+const CheckboxLabel = styled.span`
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text}99;
+  user-select: none;
+`;
 
 // Animation
 const float = keyframes`
@@ -285,6 +311,7 @@ const ToggleLink = styled.button`
 `;
 
 // Component
+
 const LoginPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -294,6 +321,7 @@ const LoginPage = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false); // Add this state
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
@@ -324,11 +352,13 @@ const LoginPage = () => {
           setEmail('');
           setPassword('');
           setDisplayName('');
+          setRememberMe(false); // Reset remember me on sign up
         } else {
           setError(result.error);
         }
       } else {
-        const result = await signIn(email, password);
+        // Pass rememberMe to signIn function
+        const result = await signIn(email, password, rememberMe);
         if (result.success) {
           navigate('/');
         } else {
@@ -349,6 +379,11 @@ const LoginPage = () => {
     setEmail('');
     setPassword('');
     setDisplayName('');
+    setRememberMe(false); // Reset remember me when toggling modes
+  };
+
+  const handleRememberMeChange = () => {
+    setRememberMe(!rememberMe);
   };
 
   return (
@@ -417,6 +452,21 @@ const LoginPage = () => {
                 {showPassword ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />}
               </PasswordToggle>
             </InputContainer>
+
+            {/* Add Remember Me checkbox - only show for login, not signup */}
+            {!isSignUp && (
+              <CheckboxContainer onClick={handleRememberMeChange}>
+                <CheckboxInput 
+                  type="checkbox" 
+                  checked={rememberMe} 
+                  onChange={handleRememberMeChange}
+                />
+                <CheckboxIcon theme={theme} checked={rememberMe}>
+                  {rememberMe ? <MdCheckBox size={20} /> : <MdCheckBoxOutlineBlank size={20} />}
+                </CheckboxIcon>
+                <CheckboxLabel theme={theme}>Remember me</CheckboxLabel>
+              </CheckboxContainer>
+            )}
 
             <Button type="submit" disabled={loading}>
               {loading 
